@@ -24,5 +24,35 @@ DEFAULTS = {
             "base_url": "wss://stream.binance.com/",
             "heartbeat": 30,
         }
-    }
+    },
+    "api_testnet": {
+        "http": {
+            "base_url": "https://testnet.binance.vision/",
+            "timeout": 30,
+        },
+        "websockets": {
+            "base_url": "wss://testnet.binance.vision/",
+            "heartbeat": 30,
+        }
+    },
+    "fapi": {
+        "http": {
+            "base_url": "https://fapi.binance.com/",
+            "timeout": 30,
+        },
+        "websockets": {
+            "base_url": "wss://fstream.binance.com/",
+            "heartbeat": 30,
+        }
+    },
+    "fapi_testnet": {
+        "http": {
+            "base_url": "https://testnet.binancefuture.com/",
+            "timeout": 30,
+        },
+        "websockets": {
+            "base_url": "wss://fstream.binancefuture.com/",
+            "heartbeat": 30,
+        }
+    },
 }

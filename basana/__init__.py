@@ -58,6 +58,8 @@ from .core.helpers import (
 from .core.pair import (
     Pair,
     PairInfo,
+    FuturesPair,
+    FuturesPairInfo,
 )
 
 from .core.token_bucket import (

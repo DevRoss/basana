@@ -67,7 +67,7 @@ class BaseClient:
     def __init__(
             self, api_key: Optional[str] = None, api_secret: Optional[str] = None,
             session: Optional[aiohttp.ClientSession] = None, tb: Optional[token_bucket.TokenBucketLimiter] = None,
-            config_overrides: dict = {}
+            config_overrides: dict = {}, api_type: Optional[str] = None
     ):
         assert not ((api_key is None) ^ (api_secret is None)), \
             "Both api_key and api_secret should be set, or none of them"
@@ -77,6 +77,10 @@ class BaseClient:
         self._session = session
         self._tb = tb
         self._config_overrides = config_overrides
+        self._api_type = api_type
+
+    def _get_config_key(self, key: str) -> str:
+        return "{}.{}".format(self._api_type or "api", key)
 
     async def make_request(
             self, method: str, path: str, send_key: bool = False, send_sig: bool = False,
@@ -94,8 +98,11 @@ class BaseClient:
             }.get(method)
             assert session_method is not None
 
-            base_url = get_config_value(config.DEFAULTS, "api.http.base_url", overrides=self._config_overrides)
-            timeout = get_config_value(config.DEFAULTS, "api.http.timeout", overrides=self._config_overrides)
+            base_url_config_key = self._get_config_key("http.base_url")
+            timeout_config_key =  self._get_config_key("http.timeout")
+
+            base_url = get_config_value(config.DEFAULTS, base_url_config_key, overrides=self._config_overrides)
+            timeout = get_config_value(config.DEFAULTS, timeout_config_key, overrides=self._config_overrides)
             url = urljoin(base_url, path)
 
             if send_key or send_sig:

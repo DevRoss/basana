@@ -34,8 +34,10 @@ def get_signature(api_secret: str, qs_params: dict = {}, data: dict = {}) -> str
     return hmac.new(api_secret.encode(), msg=total_params.encode("utf-8"), digestmod=hashlib.sha256).hexdigest()
 
 
-def pair_to_order_book_symbol(pair: pair.Pair) -> str:
-    return "{}{}".format(pair.base_symbol.upper(), pair.quote_symbol.upper())
+def pair_to_order_book_symbol(pair_: pair.Pair) -> str:
+    if isinstance(pair_, pair.FuturesPair) and pair_.contract_type.is_delivery:
+        return pair_.symbol
+    return "{}{}".format(pair_.base_symbol.upper(), pair_.quote_symbol.upper())
 
 
 def order_operation_to_side(operation: OrderOperation) -> str:

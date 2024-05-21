@@ -13,14 +13,56 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+from enum import Enum, unique
 from decimal import Decimal
 from typing import Dict, Optional, Sequence
 import collections
 import datetime
 
+# from . import helpers
 from . import helpers
 from basana.core.enums import OrderOperation
+
+
+@unique
+class BinanceAccountType(Enum):
+    """
+    Represents a `Binance` account type.
+    """
+
+    SPOT = "SPOT"
+    MARGIN = "MARGIN"
+    ISOLATED_MARGIN = "ISOLATED_MARGIN"
+    USDT_FUTURE = "USDT_FUTURE"
+    COIN_FUTURE = "COIN_FUTURE"
+
+    @property
+    def is_spot(self):
+        return self == BinanceAccountType.SPOT
+
+    @property
+    def is_margin(self):
+        return self in (
+            BinanceAccountType.MARGIN,
+            BinanceAccountType.ISOLATED_MARGIN,
+        )
+
+    @property
+    def is_spot_or_margin(self):
+        return self in (
+            BinanceAccountType.SPOT,
+            BinanceAccountType.MARGIN,
+            BinanceAccountType.ISOLATED_MARGIN,
+        )
+
+    @property
+    def is_futures(self) -> bool:
+        return self in (
+            BinanceAccountType.USDT_FUTURE,
+            BinanceAccountType.COIN_FUTURE,
+        )
+
+
 
 
 class Balance:
@@ -41,6 +83,236 @@ class Balance:
     def locked(self) -> Decimal:
         """The locked balance."""
         return Decimal(self.json["locked"])
+
+
+class Position:
+    """
+    {'symbol': 'SNTUSDT', 'initialMargin': '0', 'maintMargin': '0', 'unrealizedProfit': '0.00000000',
+      'positionInitialMargin': '0', 'openOrderInitialMargin': '0', 'leverage': '20', 'isolated': False,
+        'entryPrice': '0.0', 'breakEvenPrice': '0.0', 'maxNotional': '25000', 'positionSide': 'LONG',
+          'positionAmt': '0', 'notional': '0', 'isolatedWallet': '0', 'updateTime': 0, 'bidNotional': '0', 'askNotional': '0'}
+    """
+
+    def __init__(self, json: dict):
+        self.json = json
+
+    @property
+    def symbol(self) -> str:
+        return self.json["symbol"]
+
+    @property
+    def initial_margin(self) -> Decimal:
+        return Decimal(self.json["initialMargin"])
+
+    @property
+    def maint_margin(self) -> Decimal:
+        return Decimal(self.json["maintMargin"])
+
+    @property
+    def unrealized_profit(self) -> Decimal:
+        return Decimal(self.json["unrealizedProfit"])
+
+    @property
+    def position_initial_margin(self) -> Decimal:
+        return Decimal(self.json["positionInitialMargin"])
+
+    @property
+    def open_order_initial_margin(self) -> Decimal:
+        return Decimal(self.json["openOrderInitialMargin"])
+
+    @property
+    def leverage(self) -> Decimal:
+        return Decimal(self.json["leverage"])
+
+    @property
+    def isolated(self) -> bool:
+        return self.json["isolated"]
+
+    @property
+    def entry_price(self) -> Decimal:
+        return Decimal(self.json["entryPrice"])
+
+    @property
+    def break_even_price(self) -> Decimal:
+        return Decimal(self.json["breakEvenPrice"])
+
+    @property
+    def max_notional(self) -> Decimal:
+        return Decimal(self.json["maxNotional"])
+
+    @property
+    def position_side(self) -> str:
+        return self.json["positionSide"]
+
+    @property
+    def position_amount(self) -> Decimal:
+        return Decimal(self.json["positionAmt"])
+
+    @property
+    def notional(self) -> Decimal:
+        return Decimal(self.json["notional"])
+
+    @property
+    def isolated_wallet(self) -> Decimal:
+        return Decimal(self.json["isolatedWallet"])
+
+    @property
+    def update_time(self) -> datetime.datetime:
+        return helpers.timestamp_to_datetime(self.json["updateTime"])
+
+    @property
+    def bid_notional(self) -> Decimal:
+        return Decimal(self.json["bidNotional"])
+
+    @property
+    def ask_notional(self) -> Decimal:
+        return Decimal(self.json["askNotional"])
+
+
+class FuturesAsset:
+    def __init__(self, json: dict):
+        self.json = json
+
+    @property
+    def asset(self) -> str:
+        return self.json["asset"]
+
+    @property
+    def wallet_balance(self) -> Decimal:
+        return Decimal(self.json["walletBalance"])
+
+    @property
+    def unrealized_profit(self) -> Decimal:
+        return Decimal(self.json["unrealizedProfit"])
+
+    @property
+    def margin_balance(self) -> Decimal:
+        return Decimal(self.json["marginBalance"])
+
+    @property
+    def maint_margin(self) -> Decimal:
+        return Decimal(self.json["maintMargin"])
+
+    @property
+    def initial_margin(self) -> Decimal:
+        return Decimal(self.json["initialMargin"])
+
+    @property
+    def position_initial_margin(self) -> Decimal:
+        return Decimal(self.json["positionInitialMargin"])
+
+    @property
+    def open_order_initial_margin(self) -> Decimal:
+        return Decimal(self.json["openOrderInitialMargin"])
+
+    @property
+    def max_withdraw_amount(self) -> Decimal:
+        return Decimal(self.json["maxWithdrawAmount"])
+
+    @property
+    def cross_wallet_balance(self) -> Decimal:
+        return Decimal(self.json["crossWalletBalance"])
+
+    @property
+    def cross_un_pnl(self) -> Decimal:
+        return Decimal(self.json["crossUnPnl"])
+
+    @property
+    def available_balance(self) -> Decimal:
+        return Decimal(self.json["availableBalance"])
+
+    @property
+    def margin_available(self) -> bool:
+        return self.json["marginAvailable"]
+
+    @property
+    def update_time(self) -> datetime.datetime:
+        return helpers.timestamp_to_datetime(self.json["updateTime"])
+
+
+class FuturesBalance:
+    def __init__(self, json: dict):
+        self.json = json
+
+    @property
+    def fee_tier(self) -> int:
+        return self.json["feeTier"]
+
+    @property
+    def can_trade(self) -> bool:
+        return self.json["canTrade"]
+
+    @property
+    def can_deposit(self) -> bool:
+        return self.json["canDeposit"]
+
+    @property
+    def can_withdraw(self) -> bool:
+        return self.json["canWithdraw"]
+
+    @property
+    def trade_group_id(self) -> int:
+        return self.json["tradeGroupId"]
+
+    @property
+    def update_time(self) -> datetime.datetime:
+        return helpers.timestamp_to_datetime(self.json["updateTime"])
+
+    @property
+    def multi_assets_margin(self) -> bool:
+        return self.json["multiAssetsMargin"]
+
+    @property
+    def total_initial_margin(self) -> Decimal:
+        return Decimal(self.json["totalInitialMargin"])
+
+    @property
+    def total_maint_margin(self) -> Decimal:
+        return Decimal(self.json["totalMaintMargin"])
+
+    @property
+    def total_wallet_balance(self) -> Decimal:
+        return Decimal(self.json["totalWalletBalance"])
+
+    @property
+    def total_unrealized_profit(self) -> Decimal:
+        return Decimal(self.json["totalUnrealizedProfit"])
+
+    @property
+    def total_margin_balance(self) -> Decimal:
+        return Decimal(self.json["totalMarginBalance"])
+
+    @property
+    def total_position_initial_margin(self) -> Decimal:
+        return Decimal(self.json["totalPositionInitialMargin"])
+
+    @property
+    def total_open_order_initial_margin(self) -> Decimal:
+        return Decimal(self.json["totalOpenOrderInitialMargin"])
+
+    @property
+    def total_cross_wallet_balance(self) -> Decimal:
+        return Decimal(self.json["totalCrossWalletBalance"])
+
+    @property
+    def total_cross_un_pnl(self) -> Decimal:
+        return Decimal(self.json["totalCrossUnPnl"])
+
+    @property
+    def available_balance(self) -> Decimal:
+        return Decimal(self.json["availableBalance"])
+
+    @property
+    def max_withdraw_amount(self) -> Decimal:
+        return Decimal(self.json["maxWithdrawAmount"])
+
+    @property
+    def assets(self) -> Dict[str, FuturesAsset]:
+        return {data["asset"]: FuturesAsset(data) for data in self.json["assets"]}
+
+    @property
+    def positions(self) -> Dict[str, Position]:
+        return {data["symbol"]: Position(data) for data in self.json["positions"]}
 
 
 class Trade:

@@ -18,21 +18,64 @@ from typing import Any, Dict, Optional
 
 import aiohttp
 
-from . import base, margin, spot
+from abc import ABC, abstractmethod
+from . import base, margin, spot, futures
 from basana.core import token_bucket
 
 
 Error = base.Error
 
 
-class APIClient:
+class RestClient(ABC):
+    @abstractmethod
+    def __init__(self) -> None:
+        pass
+
+    @abstractmethod
+    async def get_exchange_info(self, symbol: Optional[str] = None) -> dict:
+        pass
+
+    @abstractmethod
+    async def get_order_book(self, symbol: str, limit: Optional[int] = None) -> dict:
+        pass
+
+    @abstractmethod
+    async def get_candlestick_data(
+            self, symbol: str, interval: str, start_time: Optional[int] = None, end_time: Optional[int] = None,
+            limit: Optional[int] = None
+    ) -> list:
+        pass
+
+    @property
+    @abstractmethod
+    def spot_account(self) -> spot.SpotAccount:
+        pass
+
+    @property
+    @abstractmethod
+    def cross_margin_account(self) -> margin.CrossMarginAccount:
+        pass
+
+    @property
+    @abstractmethod
+    def isolated_margin_account(self) -> margin.IsolatedMarginAccount:
+        pass
+
+    @property
+    @abstractmethod
+    def futures_account(self) -> futures.FuturesAccount:
+        pass
+
+
+class APIClient(RestClient):
     def __init__(
             self, api_key: Optional[str] = None, api_secret: Optional[str] = None,
             session: Optional[aiohttp.ClientSession] = None, tb: Optional[token_bucket.TokenBucketLimiter] = None,
-            config_overrides: dict = {}
+            config_overrides: dict = {}, api_type: str = "api"
     ):
         self._client = base.BaseClient(
-            api_key=api_key, api_secret=api_secret, session=session, tb=tb, config_overrides=config_overrides
+            api_key=api_key, api_secret=api_secret, session=session, tb=tb, config_overrides=config_overrides,
+            api_type=api_type
         )
 
     async def get_exchange_info(self, symbol: Optional[str] = None) -> dict:
@@ -52,6 +95,10 @@ class APIClient:
     @property
     def isolated_margin_account(self) -> margin.IsolatedMarginAccount:
         return margin.IsolatedMarginAccount(self._client)
+    
+    @property
+    def futures_account(self) -> futures.FuturesAccount:
+        raise NotImplementedError("Futures account is not available in the API client, use FAPIClient instead.")
 
     async def get_order_book(self, symbol: str, limit: Optional[int] = None) -> dict:
         params: Dict[str, Any] = {"symbol": symbol}
@@ -73,3 +120,58 @@ class APIClient:
             ("limit", limit),
         ))
         return await self._client.make_request("GET", "/api/v3/klines", qs_params=params)
+
+class FAPIClient(RestClient):
+    def __init__(
+            self, api_key: Optional[str] = None, api_secret: Optional[str] = None,
+            session: Optional[aiohttp.ClientSession] = None, tb: Optional[token_bucket.TokenBucketLimiter] = None,
+            config_overrides: dict = {}, api_type: str = "fapi"
+    ):
+        self._client = base.BaseClient(
+            api_key=api_key, api_secret=api_secret, session=session, tb=tb, config_overrides=config_overrides,
+            api_type=api_type
+        )
+
+    async def get_exchange_info(self, symbol: Optional[str] = None) -> dict:
+        params = {}
+        if symbol:
+            params["symbol"] = symbol
+        return await self._client.make_request("GET", "/fapi/v1/exchangeInfo", qs_params=params)
+
+    @property
+    def spot_account(self) -> spot.SpotAccount:
+        raise NotImplementedError("Spot account is not available in the FAPI client.")
+
+    @property
+    def cross_margin_account(self) -> margin.CrossMarginAccount:
+        raise NotImplementedError("Cross margin account is not available in the FAPI client.")
+
+    @property
+    def isolated_margin_account(self) -> margin.IsolatedMarginAccount:
+        raise NotImplementedError("Isolated margin account is not available in the FAPI client.")
+
+    @property
+    def futures_account(self) -> futures.FuturesAccount:
+        return futures.FuturesAccount(self._client)
+
+    async def get_order_book(self, symbol: str, limit: Optional[int] = None) -> dict:
+        params: Dict[str, Any] = {"symbol": symbol}
+        if limit is not None:
+            params["limit"] = limit
+        return await self._client.make_request("GET", "/fapi/v1/depth", qs_params=params)
+
+    async def get_candlestick_data(
+            self, symbol: str, interval: str, start_time: Optional[int] = None, end_time: Optional[int] = None,
+            limit: Optional[int] = None
+    ) -> list:
+        params: Dict[str, Any] = {
+            "symbol": symbol,
+            "interval": interval,
+        }
+        base.set_optional_params(params, (
+            ("startTime", start_time),
+            ("endTime", end_time),
+            ("limit", limit),
+        ))
+        return await self._client.make_request("GET", "/fapi/v1/klines", qs_params=params)
+
