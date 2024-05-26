@@ -174,4 +174,19 @@ class FAPIClient(RestClient):
             ("limit", limit),
         ))
         return await self._client.make_request("GET", "/fapi/v1/klines", qs_params=params)
-
+    
+    async def get_basis_data(
+            self, pair: str, contract_type: str, period: str, limit: int,
+            start_time: Optional[int] = None, end_time: Optional[int] = None
+    ) -> list:
+        params: Dict[str, Any] = {
+            "pair": pair,
+            "contractType": contract_type,
+            "period": period,
+            "limit": limit
+        }
+        base.set_optional_params(params, (
+            ("startTime", start_time),
+            ("endTime", end_time),
+        ))
+        return await self._client.make_request("GET", "/futures/data/basis", qs_params=params)
