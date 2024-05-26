@@ -79,7 +79,7 @@ BinanceAccountType = common.BinanceAccountType
 BinanceContractType = contract.BinanceContractType
 
 
-class SpotExchange:
+class Exchange:
     """A client for `Binance <https://www.binance.com/>`_ crypto currency exchange.
 
     :param dispatcher: The event dispatcher.
@@ -525,7 +525,7 @@ class FuturesExchange:
 
 
 # Factory method for creating an Exchange instance.
-class Exchange:
+class ExchangeFactory:
 
     @classmethod
     def create(
@@ -538,9 +538,9 @@ class Exchange:
         config_overrides: dict = {},
         account_type: BinanceAccountType = BinanceAccountType.SPOT,
         testnet: bool = False,
-    ) -> Union[SpotExchange, FuturesExchange]:
+    ) -> Union[Exchange, FuturesExchange]:
         if account_type.is_spot_or_margin:
-            return SpotExchange(dispatcher, api_key, api_secret, session, tb, config_overrides, account_type, testnet)
+            return Exchange(dispatcher, api_key, api_secret, session, tb, config_overrides, account_type, testnet)
         elif account_type.is_futures:
             return FuturesExchange(
                 dispatcher, api_key, api_secret, session, tb, config_overrides, account_type, testnet
